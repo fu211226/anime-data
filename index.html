@@ -2,18 +2,24 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="放送情報・配信情報・キャスト・スタッフをまとめたアニメデータサイト">
-<title>ANIME DATA｜アニメデータまとめ</title><link rel="stylesheet" href="style.css">
+<meta name="description" content="Anime data database with broadcast, streaming, cast and staff information">
+<title>ANIME DATA｜アニメデータまとめ</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.hero-title{white-space:nowrap}.hero-title-space{display:inline}.lang-switch{padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+</style>
+
 </head>
 <body>
-<header><div class="nav"><a class="logo" href="./">ANIME<span>DATA</span></a><nav><a href="./">作品一覧</a><a href="#seasons">クール</a><a href="#popular">注目作品</a></nav></div></header>
+<header><div class="nav"><a class="logo" href="./">ANIME<span>DATA</span></a><nav><a href="./" data-i18n="navList">作品一覧</a><a href="#seasons" data-i18n="navSeasons">クール</a><a href="#popular" data-i18n="navPopular">注目作品</a><button id="languageSwitcher" class="lang-switch">English</button></nav></div></header>
 <main>
-<section class="hero"><div><p class="eyebrow">ANIME DATABASE</p><h1>アニメデータ<br><em>まとめ</em></h1><p>放送情報・配信情報・キャスト・スタッフを、ひとつに。</p></div><div class="hero-badge"><b id="liveStatus">データ準備中</b><span>Jikan + 公開データ</span></div></section>
-<section class="search"><input id="q" autocomplete="off" placeholder="作品名・かな・ジャンル・制作会社で検索"><select id="season"><option value="">すべてのクール</option></select><button id="clear">クリア</button></section>
+<section class="hero"><div><p class="eyebrow" data-i18n="eyebrow">ANIME DATABASE</p><h1 class="hero-title"><span data-i18n="heroTitle">アニメデータ</span><span class="hero-title-space"> </span><em data-i18n="heroTitle2">まとめ</em></h1><p data-i18n="heroDesc">放送情報・配信情報・キャスト・スタッフを、ひとつに。</p></div><div class="hero-badge"><b id="liveStatus" data-i18n="status">データ準備中</b><span data-i18n="source">AniList + 公開データ</span></div></section>
+<section class="search"><input id="q" autocomplete="off" placeholder="作品名・かな・ジャンル・制作会社で検索"><select id="season"><option value="">すべてのクール</option></select><button id="clear" data-i18n="clear">クリア</button></section>
 <div id="notice" class="notice" hidden></div>
-<section class="content"><div class="head"><h2 id="heading">2026年秋アニメ</h2><span id="count"></span></div><div id="grid" class="grid"></div><div id="empty" class="empty" hidden>該当する作品がありません。</div></section>
-<section id="popular" class="content"><h2>注目作品</h2><div id="popularGrid" class="grid"></div></section>
-<section id="seasons" class="content"><h2>クールから探す</h2><div id="seasonButtons" class="buttons"></div></section>
-</main><footer>© 2026 ANIME DATA</footer>
+<section class="content"><div class="head"><h2 id="heading">2026年秋アニメ</h2><span id="count"></span></div><div id="grid" class="grid"></div><div id="empty" class="empty" hidden data-i18n="noResults">該当する作品がありません。</div></section>
+<section id="popular" class="content"><h2 data-i18n="featured">注目作品</h2><div id="popularGrid" class="grid"></div></section>
+<section id="seasons" class="content"><h2 data-i18n="browse">クールから探す</h2><div id="seasonButtons" class="buttons"></div></section>
+</main>
+<footer>© 2026 ANIME DATA</footer>
 <script src="data.js"></script><script src="app.js"></script>
 </body></html>
