@@ -227,7 +227,7 @@ function renderHome(){
   return render;
 }
 
-const DETAIL_QUERY=`query($id:Int){Media(id:$id,type:ANIME){
+const DETAIL_QUERY=`query($idMal:Int){Media(idMal:$idMal,type:ANIME){
  id idMal title{romaji english native} siteUrl description episodes duration status season seasonYear startDate{year month day}
  genres source averageScore popularity coverImage{large extraLarge}
  studios(isMain:true){nodes{name}}
@@ -253,27 +253,18 @@ async function loadJikanDetail(malId,fallback={}){
   try{
     a=await jikanGet(`/anime/${malId}`);
   }catch(e){
-    return normalizeStored(fallback);
+    return fallback&&fallback.title ? normalizeStored(fallback) : null;
   }
-
   const r=normalizeJikan(a);
-  if(!r.image && fallback.image) r.image=fallback.image;
-
+  if(!r.image && fallback?.image) r.image=fallback.image;
   try{
     const cs=await jikanGet(`/anime/${malId}/characters`);
-    r.cast=(cs?.characters||[]).slice(0,30).map(x=>({
-      character:x.character?.name||'',
-      person:(x.voice_actors||[]).find(v=>v.language==='Japanese')?.person?.name||
-             (x.voice_actors||[])[0]?.person?.name||''
-    }));
-    r.staff=(cs?.staff||[]).slice(0,25).flatMap(x=>
-      (x.positions||[]).map(role=>({role,person:x.name||''}))
-    );
+    r.cast=(cs?.characters||[]).slice(0,30).map(x=>({character:x.character?.name||'',person:(x.voice_actors||[]).find(v=>v.language==='Japanese')?.person?.name||(x.voice_actors||[])[0]?.person?.name||''}));
+    r.staff=(cs?.staff||[]).slice(0,25).flatMap(x=>(x.positions||[]).map(role=>({role,person:x.name||''})));
   }catch(e){
-    r.cast=fallback.cast||[];
-    r.staff=fallback.staff||[];
+    r.cast=fallback?.cast||[];
+    r.staff=fallback?.staff||[];
   }
-
   r.externalLinks=(a.external||[]).map(x=>({site:x.name,url:x.url}));
   return r;
 }
@@ -298,8 +289,19 @@ async function loadSeason(){
 }
 
 async function loadEnglishDetail(id){
-  const data=await gql(DETAIL_QUERY,{id:Number(id)});
+  const data=await gql(DETAIL_QUERY,{idMal:Number(id)});
   return normalize(data.Media);
+}
+
+function findStoredByAnyId(id){
+  const sid=String(id||'');
+  let list=[];
+  try{
+    const c=JSON.parse(localStorage.getItem('animeDataCache')||'null');
+    if(Array.isArray(c?.data)) list=list.concat(c.data);
+  }catch{}
+  if(typeof FALLBACK_ANIME!=='undefined' && Array.isArray(FALLBACK_ANIME)) list=list.concat(FALLBACK_ANIME);
+  return list.find(x=>String(x.id||'')===sid || String(x.malId||'')===sid || String(x.idMal||'')===sid) || null;
 }
 
 
@@ -322,13 +324,12 @@ async function start(){
       const rawId=new URLSearchParams(location.search).get('id');
       if(!rawId)throw new Error('作品IDがありません');
       if(LANG==='ja') {
-        let cached={};
-        try{
-          const c=JSON.parse(localStorage.getItem('animeDataCache')||'null');
-          cached=(c?.data||[]).find(x=>String(x.id)===String(rawId)||String(x.malId)===String(rawId))||{};
-        }catch{}
-        const a=await loadJikanDetail(rawId,cached);
-        detail(a);
+        const stored=findStoredByAnyId(rawId);
+        // ホーム側のIDがAniList IDだった古い保存データにも対応し、
+        // その作品のMAL IDがあればJikanの正しい詳細APIへつなぐ。
+        const malId=stored?.malId || stored?.idMal || rawId;
+        const a=await loadJikanDetail(malId,stored||{});
+        detail(a || (stored ? normalizeStored(stored) : null));
       } else {
         const a=await loadEnglishDetail(rawId);
         detail(a);
