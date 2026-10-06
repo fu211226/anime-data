@@ -96,7 +96,7 @@ function normalizeJikan(a){
   return {
     id:String(a.mal_id||a.id||''), malId:String(a.mal_id||a.id||''),
     title:a.title_japanese||a.title||'名称不明', titleNative:a.title_japanese||a.title||'',
-    titleEnglish:a.title_english||a.title||'', titleRomaji:a.title||'', kana:a.title||'',
+    titleEnglish:a.title_english||'', titleRomaji:a.title||'', kana:a.title||'',
     seasonKey:seasonKey(year,season), season:seasonLabel(year,season),
     date:from?from.slice(0,10):'未定', weekday:b.day||'', time:b.time||'',
     genre:(a.genres||[]).map(x=>x.name).filter(Boolean), studio:studios||'未定', source:a.source||'不明',
@@ -165,7 +165,7 @@ function normalize(a){
 }
 
 function titleOf(a){
-  if(LANG==='en') return a.titleEnglish||a.titleNative||a.titleRomaji||a.title||'Unknown Title';
+  if(LANG==='en') return a.titleEnglish||a.titleRomaji||a.titleNative||a.title||'Unknown Title';
   return a.titleNative||a.title||a.titleRomaji||a.titleEnglish||'名称不明';
 }
 function seasonOf(a){
