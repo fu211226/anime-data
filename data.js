@@ -1,4 +1,34 @@
-// API取得に失敗した場合に表示する最低限のフォールバックデータです。
+// 2026年秋アニメの公開情報を初期表示用に収録しています。
+// Jikan APIが利用できる場合は、app.jsが最新データへ更新します。
 const FALLBACK_ANIME = [
- {id:900001,title:'アニメデータ サンプル',kana:'あにめでーた さんぷる',season:'2026年秋',date:'2026-10-01',weekday:'木曜日',time:'23:00',genre:['ファンタジー','冒険'],studio:'ANIME DATA STUDIO',source:'オリジナル',description:'GitHub Pages版の動作確認用サンプルです。',image:'',official:'',streaming:['配信サービス'],cast:[['主人公','サンプル声優']],staff:[['監督','サンプル監督']],score:0}
+{id:'static-01',title:'薬屋のひとりごと 第3期',kana:'くすりやのひとりごと',season:'2026年秋',date:'2026-10-02',weekday:'金曜日',time:'',genre:['ミステリー','ドラマ'],studio:'OLM',source:'ライトノベル'},
+{id:'static-02',title:'ブラッククローバー 2nd season',kana:'ぶらっくくろーばー',season:'2026年秋',date:'2026-10-03',weekday:'土曜日',time:'',genre:['アクション','ファンタジー'],studio:'studioぴえろ',source:'漫画'},
+{id:'static-03',title:'転生したら剣でしたⅡ',kana:'てんせいしたらけんでした',season:'2026年秋',date:'2026-10-01',weekday:'木曜日',time:'',genre:['アクション','ファンタジー'],studio:'C2C',source:'ライトノベル'},
+{id:'static-04',title:'アオのハコ Season2',kana:'あおのはこ',season:'2026年秋',date:'2026-10-04',weekday:'日曜日',time:'',genre:['恋愛','青春','スポーツ'],studio:'Electric Circus',source:'漫画'},
+{id:'static-05',title:'東京リベンジャーズ 三天戦争編',kana:'とうきょうりべんじゃーず',season:'2026年秋',date:'2026-10-03',weekday:'土曜日',time:'',genre:['アクション','ドラマ'],studio:'LIDENFILMS',source:'漫画'},
+{id:'static-06',title:'探偵はもう、死んでいる。Season2',kana:'たんていはもうしんでいる',season:'2026年秋',date:'2026-10-07',weekday:'水曜日',time:'',genre:['ミステリー','ロマンス'],studio:'ENGI',source:'ライトノベル'},
+{id:'static-07',title:'PSYREN -サイレン-',kana:'さいれん',season:'2026年秋',date:'2026-10-05',weekday:'月曜日',time:'23:00',genre:['アクション','SF'],studio:'',source:'漫画'},
+{id:'static-08',title:'魔法少女育成計画restart',kana:'まほうしょうじょいくせいけいかく',season:'2026年秋',date:'2026-10-05',weekday:'月曜日',time:'26:00',genre:['ファンタジー','アクション'],studio:'',source:'ライトノベル'},
+{id:'static-09',title:'凶乱令嬢ニア・リストン',kana:'きょうらんれいじょうにありすとん',season:'2026年秋',date:'2026-10-06',weekday:'火曜日',time:'21:25',genre:['ファンタジー','アクション'],studio:'',source:'ライトノベル'},
+{id:'static-10',title:'超巡！超条先輩',kana:'ちょうじゅんちょうじょうせんぱい',season:'2026年秋',date:'2026-10-06',weekday:'火曜日',time:'23:00',genre:['コメディ','アクション'],studio:'',source:'漫画'},
+{id:'static-11',title:'世界最強の魔女、始めました',kana:'せかいさいきょうのまじょはじめました',season:'2026年秋',date:'2026-10-07',weekday:'水曜日',time:'22:00',genre:['ファンタジー','コメディ'],studio:'',source:'ライトノベル'},
+{id:'static-12',title:'魔法騎士レイアース',kana:'まほうきしれいあーす',season:'2026年秋',date:'2026-10-07',weekday:'水曜日',time:'23:45',genre:['ファンタジー','アドベンチャー'],studio:'',source:'漫画'},
+{id:'static-13',title:'百妖譜 京師篇',kana:'ひゃくようふ けいしへん',season:'2026年秋',date:'2026-10-07',weekday:'水曜日',time:'25:15',genre:['ファンタジー','ドラマ'],studio:'',source:'Webアニメ'},
+{id:'static-14',title:'氷の城壁 第2期',kana:'こおりのじょうへき',season:'2026年秋',date:'2026-10-01',weekday:'木曜日',time:'23:56',genre:['恋愛','青春'],studio:'',source:'漫画'},
+{id:'static-15',title:'傷だらけ聖女より報復をこめて Season2',kana:'きずだらけせいじょよりほうふくをこめて',season:'2026年秋',date:'2026-10-01',weekday:'木曜日',time:'24:00',genre:['ファンタジー','恋愛'],studio:'',source:'漫画'},
+{id:'static-16',title:'ホテル・インヒューマンズ 第2期',kana:'ほてるいんひゅーまんず',season:'2026年秋',date:'2026-10-04',weekday:'日曜日',time:'23:45',genre:['ドラマ','アクション'],studio:'',source:'漫画'},
+{id:'static-17',title:'転生貴族、鑑定スキルで成り上がる 第3期',kana:'てんせいきぞくかんていすきる',season:'2026年秋',date:'2026-09-27',weekday:'日曜日',time:'24:00',genre:['異世界','ファンタジー'],studio:'',source:'ライトノベル'},
+{id:'static-18',title:'千歳くんはラムネ瓶のなか 第2クール',kana:'ちとせくんはらむねびんのなか',season:'2026年秋',date:'2026-10-01',weekday:'木曜日',time:'',genre:['恋愛','青春'],studio:'',source:'ライトノベル'},
+{id:'static-19',title:'野生のラスボスが現れた！ 第2期',kana:'やせいのらすぼすがあらわれた',season:'2026年秋',date:'2026-10-01',weekday:'木曜日',time:'',genre:['異世界','ファンタジー'],studio:'',source:'ライトノベル'},
+{id:'static-20',title:'ドラゴンボール超 ビルス',kana:'どらごんぼーるすーぱーびるす',season:'2026年秋',date:'2026-10-01',weekday:'木曜日',time:'',genre:['アクション','冒険'],studio:'',source:'漫画'},
+{id:'static-21',title:'PSYREN -サイレン-',kana:'さいれん',season:'2026年秋',date:'2026-10-05',weekday:'月曜日',time:'23:00',genre:['アクション','SF'],studio:'',source:'漫画'},
+{id:'static-22',title:'アオアシ Season2',kana:'あおあし',season:'2026年秋',date:'2026-10-04',weekday:'日曜日',time:'17:00',genre:['スポーツ','青春'],studio:'',source:'漫画'},
+{id:'static-23',title:'夜桜さんちの大作戦 第2期',kana:'よざくらさんちのだいさくせん',season:'2026年秋',date:'2026-10-11',weekday:'日曜日',time:'17:00',genre:['アクション','コメディ'],studio:'',source:'漫画'},
+{id:'static-24',title:'ダイヤのA actⅡ -Second Season- 第2クール',kana:'だいやのえーす',season:'2026年秋',date:'2026-10-11',weekday:'日曜日',time:'17:30',genre:['スポーツ','青春'],studio:'',source:'漫画'},
+{id:'static-25',title:'らんま1/2 第3期',kana:'らんまにぶんのいち',season:'2026年秋',date:'2026-10-03',weekday:'土曜日',time:'24:55',genre:['コメディ','恋愛'],studio:'',source:'漫画'},
+{id:'static-26',title:'タヌキとキツネ',kana:'たぬきときつね',season:'2026年秋',date:'2026-10-04',weekday:'日曜日',time:'07:00',genre:['コメディ','日常'],studio:'',source:'漫画'},
+{id:'static-27',title:'ポップパップポルターズ',kana:'ぽっぷぱっぷぽるたーず',season:'2026年秋',date:'2026-10-04',weekday:'日曜日',time:'10:00',genre:['コメディ','キッズ'],studio:'MOZU STUDIOS',source:'オリジナル'},
+{id:'static-28',title:'塩対応の佐藤さんが俺にだけ甘い',kana:'しおたいおうのさとうさんがおれにだけあまい',season:'2026年秋',date:'2026-10-01',weekday:'木曜日',time:'',genre:['恋愛','青春','コメディ'],studio:'',source:'ライトノベル'},
+{id:'static-29',title:'ケロロ軍曹☆',kana:'けろろぐんそう',season:'2026年秋',date:'2026-10-01',weekday:'',time:'',genre:['コメディ','SF'],studio:'',source:'漫画'},
+{id:'static-30',title:'ダークサモナーとデキている',kana:'だーくさもなーとできている',season:'2026年秋',date:'2026-10-01',weekday:'',time:'',genre:['ファンタジー','恋愛'],studio:'',source:'漫画'}
 ];

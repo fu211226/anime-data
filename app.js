@@ -14,5 +14,39 @@ function renderHome(){const q=document.querySelector('#q'),s=document.querySelec
 async function getDetail(id){return api(`/anime/${encodeURIComponent(id)}/full`);}
 function detail(a){const d=document.querySelector('#detail');if(!a){d.innerHTML='<div class="empty"><h1>作品が見つかりません</h1><a href="./">一覧へ戻る</a></div>';return}document.title=a.title+'｜ANIME DATA';const cast=(a.characters||[]).filter(x=>x.character?.name).slice(0,30);const staff=a.staff||[];const streaming=(a.streaming||[]).filter(x=>x.name);d.innerHTML=`<div class="detailtop"><div class="detailcover">${a.image?`<img src="${esc(a.image)}" alt="${esc(a.title)}">`:'ANIME DATA'}</div><div><span class="tag">${esc(a.season)}</span><h1>${esc(a.title)}</h1><p class="kana">${esc(a.kana)}</p><p class="desc">${esc(a.description||'作品情報を準備中です。')}</p><div class="facts"><div><b>放送開始</b>${esc(a.date)}</div><div><b>放送</b>${esc([a.weekday,a.time].filter(Boolean).join(' '))||'未定'}</div><div><b>ジャンル</b>${esc(a.genre.join(' / '))}</div><div><b>制作会社</b>${esc(a.studio)}</div><div><b>原作</b>${esc(a.source)}</div><div><b>評価</b>${a.score?esc(a.score.toFixed(2)):'-'}</div><div><b>話数</b>${a.episodes||'未定'}</div></div>${a.official?`<a class="btn" href="${esc(a.official)}" target="_blank" rel="noopener">MyAnimeList作品ページ</a>`:''}</div></div><div class="cols"><section><h2>キャスト</h2>${cast.length?cast.map(x=>`<p class="row"><b>${esc(x.character.name)}</b><span>${esc(x.voice_actors?.[0]?.person?.name||'')}</span></p>`).join(''):'<p>情報なし</p>'}</section><section><h2>スタッフ</h2>${staff.length?staff.slice(0,25).map(x=>`<p class="row"><b>${esc(x.positions?.join(' / ')||'スタッフ')}</b><span>${esc(x.person?.name||'')}</span></p>`).join(''):'<p>情報なし</p>'}</section></div><section><h2>配信情報</h2><div class="chips">${streaming.length?streaming.map(x=>`<a href="${esc(x.url||'#')}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(''):'<span>Jikanから取得できる配信情報はありません</span>'}</div></section>`;}
 async function loadSeason(){const y=currentYear(),s=currentSeason();let all=[];for(let page=1;page<=2;page++){if(page>1)await sleep(350);const part=await api(`/seasons/${y}/${s}?page=${page}&limit=25`);all.push(...part);if(part.length<25)break;}return all.map(normalize);}
-async function start(){const isDetail=location.pathname.endsWith('anime.html');try{if(isDetail){const id=new URLSearchParams(location.search).get('id');const a=normalize(await getDetail(id));detail({...a,characters:(await api(`/anime/${id}/characters`)).slice(0,30),staff:(await api(`/anime/${id}/staff`)).slice(0,25),streaming:await api(`/anime/${id}/streaming`)});return;}ANIME_DATA=await loadSeason();if(!ANIME_DATA.length)throw new Error('今クールの作品データが空です');localStorage.setItem('animeDataCache',JSON.stringify({at:Date.now(),data:ANIME_DATA}));document.querySelector('#liveStatus').textContent=`Jikan連携・${ANIME_DATA.length}作品`;document.querySelector('#notice').hidden=true;}catch(e){console.error(e);try{const c=JSON.parse(localStorage.getItem('animeDataCache')||'null');if(c?.data?.length){ANIME_DATA=c.data;const n=document.querySelector('#notice');if(n){n.hidden=false;n.textContent='最新データの取得に失敗したため、前回取得したデータを表示しています。';}}else throw e;}catch{ANIME_DATA=[...FALLBACK_ANIME];const n=document.querySelector('#notice');if(n){n.hidden=false;n.textContent='アニメデータAPIに接続できませんでした。時間を置いて再読み込みしてください。';}if(document.querySelector('#liveStatus'))document.querySelector('#liveStatus').textContent='オフライン表示';}}if(isDetail){const id=new URLSearchParams(location.search).get('id');if(id&&ANIME_DATA.length){const a=ANIME_DATA.find(x=>x.id===id);if(a)detail(a);else detail(null);}else detail(null);}else{fillSeasons();renderHome();}}
+async function start(){
+  const isDetail=location.pathname.endsWith('anime.html');
+  if(isDetail){
+    const id=new URLSearchParams(location.search).get('id');
+    try{
+      const a=normalize(await getDetail(id));
+      detail({...a,characters:(await api(`/anime/${id}/characters`)).slice(0,30),staff:(await api(`/anime/${id}/staff`)).slice(0,25),streaming:await api(`/anime/${id}/streaming`)});
+    }catch(e){
+      const a=FALLBACK_ANIME.find(x=>x.id===id);
+      detail(a||null);
+    }
+    return;
+  }
+  // 最初から実在作品の静的データを表示。APIが使えれば最新情報に差し替えます。
+  ANIME_DATA=[...FALLBACK_ANIME];
+  fillSeasons();
+  renderHome();
+  const status=document.querySelector('#liveStatus');
+  if(status) status.textContent=`公開データ・${ANIME_DATA.length}作品`;
+  try{
+    const latest=await loadSeason();
+    if(latest.length>=5){
+      ANIME_DATA=latest;
+      localStorage.setItem('animeDataCache',JSON.stringify({at:Date.now(),data:ANIME_DATA}));
+      fillSeasons(); renderHome();
+      if(status) status.textContent=`Jikan連携・${ANIME_DATA.length}作品`;
+      const n=document.querySelector('#notice'); if(n) n.hidden=true;
+    }
+  }catch(e){
+    console.warn('Jikan API unavailable; using built-in public data.',e);
+    const n=document.querySelector('#notice');
+    if(n){n.hidden=false;n.textContent='最新APIを取得できないため、収録済みの2026年秋アニメ公開データを表示しています。';}
+  }
+}
+
 start();
