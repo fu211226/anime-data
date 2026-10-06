@@ -44,57 +44,10 @@ async function loadEnglishDetail(id){const data=await gql(DETAIL_QUERY,{id:Numbe
 function detail(a){const d=document.querySelector('#detail');if(!a){d.innerHTML=`<div class="empty"><h1>${esc(T().notFound)}</h1><a href="./">${esc(T().back)}</a></div>`;return}const displayTitle=titleOf(a);document.title=displayTitle+'｜ANIME DATA';const cast=(a.cast||[]).filter(x=>x.character).slice(0,30),staff=a.staff||[],streaming=(a.streaming||[]).filter(x=>x.name),links=(a.externalLinks||[]).filter(x=>x.site&&x.url),synopsis=a.description||T().info;d.innerHTML=`<div class="detailtop"><div class="detailcover">${a.image?`<img src="${esc(a.image)}" alt="${esc(displayTitle)}">`:'ANIME DATA'}</div><div><span class="tag">${esc(seasonOf(a))}</span><h1>${esc(displayTitle)}</h1><p class="kana">${esc(a.titleRomaji||'')}</p><h3 class="section-label">${esc(LANG==='ja'?'あらすじ':'Synopsis')}</h3><p class="desc">${esc(synopsis)}</p><div class="facts"><div><b>${T().aired}</b>${esc(a.date||'Unknown')}</div><div><b>${T().next}</b>${esc(weekdayText(a))}</div><div><b>${T().genre}</b>${esc(genreText(a.genre).join(' / ')||T().noInfo)}</div><div><b>${T().studio}</b>${esc(a.studio||T().noInfo)}</div><div><b>${T().sourceLabel}</b>${esc(sourceText(a.source))}</div><div><b>${T().score}</b>${a.score?esc(Number(a.score).toFixed(1)):'-'}</div><div><b>${T().episodes}</b>${a.episodes??'Unknown'}</div><div><b>${LANG==='ja'?'形式':'Format'}</b>${esc(typeText(a.type))}</div></div></div></div><div class="cols"><section><h2>${T().cast}</h2>${cast.length?cast.map(x=>`<p class="row"><b>${esc(x.character)}</b><span>${esc(x.person||'')}</span></p>`).join(''):`<p>${T().noInfo}</p>`}</section><section><h2>${T().staff}</h2>${staff.length?staff.map(x=>`<p class="row"><b>${esc(roleText(x.role))}</b><span>${esc(x.person||'')}</span></p>`).join(''):`<p>${T().noInfo}</p>`}</section></div><section><h2>${T().links}</h2><div class="chips">${links.length?links.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.site)}</a>`).join(''):`<span>${T().noInfo}</span>`}</div></section><section><h2>${T().streaming}</h2><div class="chips">${streaming.length?streaming.map(x=>`<a href="${esc(x.url||'#')}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(''):`<span>${T().noStreaming}</span>`}</div></section><p class="back"><a href="./">${esc(T().back)}</a></p>`}
 function setupLanguageSwitcher(){const btn=document.querySelector('#languageSwitcher');if(!btn)return;btn.onclick=()=>{LANG=LANG==='ja'?'en':'ja';localStorage.setItem('animeLang',LANG);location.reload()}}
 async function loadJapaneseSeason(){const y=currentYear(),s=currentSeason();try{const data=await jikanGet(`/seasons/${y}/${String(s).toLowerCase()}`);if(!data?.length)throw new Error('empty');return data.map(normalizeJikan)}catch(e){if(typeof FALLBACK_ANIME!=='undefined'&&Array.isArray(FALLBACK_ANIME))return FALLBACK_ANIME.map(normalizeStored);throw e}}
-async function start(){
-  applyStaticLanguage();setupLanguageSwitcher();
-  const isDetail=location.pathname.endsWith('anime.html');
-  if(isDetail){
-    try{
-      const rawId=new URLSearchParams(location.search).get('id');if(!rawId)throw new Error('missing id');
-      if(LANG==='ja'){
-        const stored=findStoredByAnyId(rawId),fallback=stored?normalizeStored(stored):null;
-        if(fallback)detail(fallback);
-        const malId=stored?.malId||stored?.idMal||rawId;
-        const a=await loadJikanDetailBase(malId,stored||{});
-        if(a){detail(a);const enriched=await loadJikanExtras(malId,a);detail(enriched)}else if(!fallback)detail(null);
-      }else{const a=await loadEnglishDetail(rawId);detail(a)}
-    }catch(e){console.error(e)}
-    return;
-  }
-
-  // ホームはAPIを待たず、保存済みデータ/内蔵データを先に表示する。
-  // その後、Jikan/AniListの最新データをバックグラウンドで取得して画面を更新する。
-  let immediate=[];
-  try{
-    const c=JSON.parse(localStorage.getItem('animeDataCache')||'null');
-    if(c?.data?.length && (!c.lang || c.lang===LANG)) immediate=c.data.map(normalizeStored);
-  }catch{}
-  if(!immediate.length && typeof FALLBACK_ANIME!=='undefined' && Array.isArray(FALLBACK_ANIME) && FALLBACK_ANIME.length){
-    immediate=FALLBACK_ANIME.map(normalizeStored);
-  }
-  if(immediate.length){
-    ANIME_DATA=immediate;
-    fillSeasons();renderHome();
-    document.querySelector('#liveStatus').textContent=`${LANG==='en'?'AniList':'Jikan'} · ${ANIME_DATA.length} ${T().works}`;
-  }
-
-  try{
-    const fresh=LANG==='en'?await loadEnglishSeason():await loadJapaneseSeason();
-    if(!fresh.length)throw new Error('empty season');
-    ANIME_DATA=fresh;
-    localStorage.setItem('animeDataCache',JSON.stringify({at:Date.now(),lang:LANG,data:ANIME_DATA}));
-    fillSeasons();renderHome();
-    document.querySelector('#liveStatus').textContent=`${LANG==='en'?'AniList':'Jikan'} · ${ANIME_DATA.length} ${T().works}`;
-    document.querySelector('#notice').hidden=true;
-  }catch(e){
-    console.error(e);
-    if(!immediate.length){
-      const n=document.querySelector('#notice');
-      if(n){n.hidden=false;n.textContent=T().savedData}
-      if(document.querySelector('#liveStatus'))document.querySelector('#liveStatus').textContent=T().saved;
-      fillSeasons();renderHome();
-    }
-  }
-}
-
+async function start(){applyStaticLanguage();setupLanguageSwitcher();const isDetail=location.pathname.endsWith('anime.html');if(isDetail){try{const rawId=new URLSearchParams(location.search).get('id');if(!rawId)throw new Error('missing id');if(LANG==='ja'){const stored=findStoredByAnyId(rawId),fallback=stored?normalizeStored(stored):null;if(fallback)detail(fallback);const malId=stored?.malId||stored?.idMal||rawId;const a=await loadJikanDetailBase(malId,stored||{});if(a){detail(a);const enriched=await loadJikanExtras(malId,a);detail(enriched)}else if(!fallback)detail(null)}else{const a=await loadEnglishDetail(rawId);detail(a)}}catch(e){console.error(e)}return}
+let immediate=[];try{const c=JSON.parse(localStorage.getItem('animeDataCache')||'null');if(c?.data?.length&&(!c.lang||c.lang===LANG))immediate=c.data.map(normalizeStored)}catch{}
+if(!immediate.length&&typeof FALLBACK_ANIME!=='undefined'&&Array.isArray(FALLBACK_ANIME)&&FALLBACK_ANIME.length)immediate=FALLBACK_ANIME.map(normalizeStored);
+if(immediate.length){ANIME_DATA=immediate;fillSeasons();renderHome();const st=document.querySelector('#liveStatus');if(st)st.textContent=`${LANG==='en'?'AniList':'保存済みデータ'} · ${ANIME_DATA.length} ${T().works}`}
+try{const fresh=LANG==='en'?await loadEnglishSeason():await loadJapaneseSeason();if(!fresh.length)throw new Error('empty season');ANIME_DATA=fresh;localStorage.setItem('animeDataCache',JSON.stringify({at:Date.now(),lang:LANG,data:ANIME_DATA}));fillSeasons();renderHome();const st=document.querySelector('#liveStatus');if(st)st.textContent=`${LANG==='en'?'AniList':'Jikan'} · ${ANIME_DATA.length} ${T().works}`;const n=document.querySelector('#notice');if(n)n.hidden=true}catch(e){console.error(e);if(!immediate.length){try{const c=JSON.parse(localStorage.getItem('animeDataCache')||'null');if(c?.data?.length){ANIME_DATA=c.data.map(normalizeStored);fillSeasons();renderHome();const n=document.querySelector('#notice');if(n){n.hidden=false;n.textContent=T().latestFail}}else throw e}catch{ANIME_DATA=typeof FALLBACK_ANIME!=='undefined'?[...FALLBACK_ANIME]:[];fillSeasons();renderHome();const n=document.querySelector('#notice');if(n){n.hidden=false;n.textContent=T().savedData}const st=document.querySelector('#liveStatus');if(st)st.textContent=T().saved}}}}
 function findStoredByAnyId(id){const sid=String(id||'');let list=[];try{const c=JSON.parse(localStorage.getItem('animeDataCache')||'null');if(Array.isArray(c?.data))list=list.concat(c.data)}catch{}if(typeof FALLBACK_ANIME!=='undefined'&&Array.isArray(FALLBACK_ANIME))list=list.concat(FALLBACK_ANIME);return list.find(x=>String(x.id||'')===sid||String(x.malId||'')===sid||String(x.idMal||'')===sid)||null}
 start();
