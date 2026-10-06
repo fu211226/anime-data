@@ -248,11 +248,32 @@ function detail(a){
   d.innerHTML=`<div class="detailtop"><div class="detailcover">${a.image?`<img src="${esc(a.image)}" alt="${esc(displayTitle)}" onerror="if(this.dataset.retry!=='1'&&this.dataset.alt){this.dataset.retry='1';this.src=this.dataset.alt}else{this.style.display='none';this.parentElement.classList.add('image-failed')}" data-alt="${esc(a.imageAlt||'')}">`:'ANIME DATA'}</div><div><span class="tag">${esc(seasonOf(a))}</span><h1>${esc(displayTitle)}</h1><p class="kana">${esc(LANG==='en'?(a.titleRomaji||a.titleNative||''):(a.titleRomaji||''))}</p><h3 class="section-label">${esc(LANG==='ja'?'あらすじ':'Synopsis')}</h3><p class="desc">${esc(synopsis)}</p><div class="facts"><div><b>${T().aired}</b>${esc(a.date||'Unknown')}</div><div><b>${T().next}</b>${esc(weekdayText(a))}</div><div><b>${T().genre}</b>${esc(genreText(a.genre).join(' / ')||T().noInfo)}</div><div><b>${T().studio}</b>${esc(a.studio||T().noInfo)}</div><div><b>${T().sourceLabel}</b>${esc(sourceText(a.source))}</div><div><b>${T().score}</b>${a.score?esc(Number(a.score).toFixed(1)):'-'}</div><div><b>${T().episodes}</b>${a.episodes??'Unknown'}</div><div><b>${LANG==='ja'?'形式':'Format'}</b>${esc(typeText(a.type))}</div></div>${a.official?`<a class="btn" href="${esc(a.official)}" target="_blank" rel="noopener">${esc(T().anilist)}</a>`:''}</div></div><div class="cols"><section><h2>${T().cast}</h2>${cast.length?cast.map(x=>`<p class="row"><b>${esc(x.character)}</b><span>${esc(x.person||'')}</span></p>`).join(''):`<p>${T().noInfo}</p>`}</section><section><h2>${T().staff}</h2>${staff.length?staff.map(x=>`<p class="row"><b>${esc(roleText(x.role))}</b><span>${esc(x.person||'')}</span></p>`).join(''):`<p>${T().noInfo}</p>`}</section></div><section><h2>${T().links}</h2><div class="chips">${links.length?links.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.site)}</a>`).join(''):`<span>${T().noInfo}</span>`}</div></section><section><h2>${T().streaming}</h2><div class="chips">${streaming.length?streaming.map(x=>`<a href="${esc(x.url||'#')}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(''):`<span>${T().noStreaming}</span>`}</div></section><p class="back"><a href="./">${esc(T().back)}</a></p>`;
 }
 
-async function loadJikanDetail(malId){
-  const [a,cs]=await Promise.all([jikanGet(`/anime/${malId}`),jikanGet(`/anime/${malId}/characters`)]);
+async function loadJikanDetail(malId,fallback={}){
+  let a;
+  try{
+    a=await jikanGet(`/anime/${malId}`);
+  }catch(e){
+    return normalizeStored(fallback);
+  }
+
   const r=normalizeJikan(a);
-  r.cast=(cs?.characters||[]).slice(0,30).map(x=>({character:x.character?.name||'',person:(x.voice_actors||[]).find(v=>v.language==='Japanese')?.person?.name||(x.voice_actors||[])[0]?.person?.name||''}));
-  r.staff=(cs?.staff||[]).slice(0,25).flatMap(x=>(x.positions||[]).map(role=>({role,person:x.name||''})));
+  if(!r.image && fallback.image) r.image=fallback.image;
+
+  try{
+    const cs=await jikanGet(`/anime/${malId}/characters`);
+    r.cast=(cs?.characters||[]).slice(0,30).map(x=>({
+      character:x.character?.name||'',
+      person:(x.voice_actors||[]).find(v=>v.language==='Japanese')?.person?.name||
+             (x.voice_actors||[])[0]?.person?.name||''
+    }));
+    r.staff=(cs?.staff||[]).slice(0,25).flatMap(x=>
+      (x.positions||[]).map(role=>({role,person:x.name||''}))
+    );
+  }catch(e){
+    r.cast=fallback.cast||[];
+    r.staff=fallback.staff||[];
+  }
+
   r.externalLinks=(a.external||[]).map(x=>({site:x.name,url:x.url}));
   return r;
 }
@@ -301,7 +322,12 @@ async function start(){
       const rawId=new URLSearchParams(location.search).get('id');
       if(!rawId)throw new Error('作品IDがありません');
       if(LANG==='ja') {
-        const a=await loadJikanDetail(rawId);
+        let cached={};
+        try{
+          const c=JSON.parse(localStorage.getItem('animeDataCache')||'null');
+          cached=(c?.data||[]).find(x=>String(x.id)===String(rawId)||String(x.malId)===String(rawId))||{};
+        }catch{}
+        const a=await loadJikanDetail(rawId,cached);
         detail(a);
       } else {
         const a=await loadEnglishDetail(rawId);
