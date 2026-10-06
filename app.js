@@ -80,7 +80,9 @@ function normalizeJikan(a){
   const seasonMap={winter:'WINTER',spring:'SPRING',summer:'SUMMER',fall:'FALL'};
   const season=seasonMap[String(a.season||'').toLowerCase()]||currentSeason();
   const year=Number(a.year||a.premiered?.match?.(/\d{4}/)?.[0]||from.slice(0,4)||currentYear());
-  const image=((a.images||{}).jpg||{}).large_image_url||((a.images||{}).jpg||{}).image_url||'';
+  const jpg=(a.images||{}).jpg||{};
+  const webp=(a.images||{}).webp||{};
+  const image=webp.large_image_url||jpg.large_image_url||webp.image_url||jpg.image_url||'';
   return {
     id:String(a.mal_id||a.id||''), malId:String(a.mal_id||a.id||''),
     title:a.title_japanese||a.title||'名称不明', titleNative:a.title_japanese||a.title||'',
@@ -89,6 +91,7 @@ function normalizeJikan(a){
     date:from?from.slice(0,10):'未定', weekday:b.day||'', time:b.time||'',
     genre:(a.genres||[]).map(x=>x.name).filter(Boolean), studio:studios||'未定', source:a.source||'不明',
     description:String(a.synopsis||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim(), image,
+    imageAlt:jpg.large_image_url||jpg.image_url||'',
     official:a.url||'', streaming:(a.streaming||[]).filter(x=>x.name).map(x=>({name:x.name,url:x.url,title:''})),
     cast:[], staff:[], externalLinks:[], score:Number(a.score||0), popularity:Number(a.popularity||0),
     rank:Number(a.rank||0), status:a.status||'', episodes:a.episodes??null, type:a.type||''
@@ -175,7 +178,7 @@ function weekdayText(a){
   return [map[a.weekday]||a.weekday,a.time].filter(Boolean).join(' ');
 }
 
-const card=a=>`<article class="card"><a href="anime.html?id=${encodeURIComponent(a.id)}"><div class="cover">${a.image?`<img loading="lazy" src="${esc(a.image)}" alt="${esc(titleOf(a))}" onerror="this.style.display='none';this.parentElement.classList.add('image-failed')">`:'ANIME DATA'}${a.score?`<b class="score">★ ${esc(a.score.toFixed(1))}</b>`:''}</div><div class="body"><span class="tag">${esc(seasonOf(a))}</span><h3>${esc(titleOf(a))}</h3><p>${esc(genreText((a.genre||[]).slice(0,3)).join(' / '))}</p><small>${esc(a.date)}　${esc(a.studio)}</small></div></a></article>`;
+const card=a=>`<article class="card"><a href="anime.html?id=${encodeURIComponent(a.id)}"><div class="cover">${a.image?`<img loading="lazy" src="${esc(a.image)}" alt="${esc(titleOf(a))}" onerror="if(this.dataset.retry!=='1'&&this.dataset.alt){this.dataset.retry='1';this.src=this.dataset.alt}else{this.style.display='none';this.parentElement.classList.add('image-failed')}" data-alt="${esc(a.imageAlt||'')}">`:'ANIME DATA'}${a.score?`<b class="score">★ ${esc(a.score.toFixed(1))}</b>`:''}</div><div class="body"><span class="tag">${esc(seasonOf(a))}</span><h3>${esc(titleOf(a))}</h3><p>${esc(genreText((a.genre||[]).slice(0,3)).join(' / '))}</p><small>${esc(a.date)}　${esc(a.studio)}</small></div></a></article>`;
 
 function applyStaticLanguage(){
   const t=T();
@@ -242,7 +245,7 @@ function detail(a){
   const cast=(a.cast||[]).filter(x=>x.character).slice(0,30), staff=a.staff||[];
   const streaming=(a.streaming||[]).filter(x=>x.name), links=(a.externalLinks||[]).filter(x=>x.site&&x.url);
   const synopsis=a.description||T().info;
-  d.innerHTML=`<div class="detailtop"><div class="detailcover">${a.image?`<img src="${esc(a.image)}" alt="${esc(displayTitle)}" onerror="this.style.display='none';this.parentElement.classList.add('image-failed')">`:'ANIME DATA'}</div><div><span class="tag">${esc(seasonOf(a))}</span><h1>${esc(displayTitle)}</h1><p class="kana">${esc(LANG==='en'?(a.titleRomaji||a.titleNative||''):(a.titleRomaji||''))}</p><h3 class="section-label">${esc(LANG==='ja'?'あらすじ':'Synopsis')}</h3><p class="desc">${esc(synopsis)}</p><div class="facts"><div><b>${T().aired}</b>${esc(a.date||'Unknown')}</div><div><b>${T().next}</b>${esc(weekdayText(a))}</div><div><b>${T().genre}</b>${esc(genreText(a.genre).join(' / ')||T().noInfo)}</div><div><b>${T().studio}</b>${esc(a.studio||T().noInfo)}</div><div><b>${T().sourceLabel}</b>${esc(sourceText(a.source))}</div><div><b>${T().score}</b>${a.score?esc(Number(a.score).toFixed(1)):'-'}</div><div><b>${T().episodes}</b>${a.episodes??'Unknown'}</div><div><b>${LANG==='ja'?'形式':'Format'}</b>${esc(typeText(a.type))}</div></div>${a.official?`<a class="btn" href="${esc(a.official)}" target="_blank" rel="noopener">${esc(T().anilist)}</a>`:''}</div></div><div class="cols"><section><h2>${T().cast}</h2>${cast.length?cast.map(x=>`<p class="row"><b>${esc(x.character)}</b><span>${esc(x.person||'')}</span></p>`).join(''):`<p>${T().noInfo}</p>`}</section><section><h2>${T().staff}</h2>${staff.length?staff.map(x=>`<p class="row"><b>${esc(roleText(x.role))}</b><span>${esc(x.person||'')}</span></p>`).join(''):`<p>${T().noInfo}</p>`}</section></div><section><h2>${T().links}</h2><div class="chips">${links.length?links.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.site)}</a>`).join(''):`<span>${T().noInfo}</span>`}</div></section><section><h2>${T().streaming}</h2><div class="chips">${streaming.length?streaming.map(x=>`<a href="${esc(x.url||'#')}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(''):`<span>${T().noStreaming}</span>`}</div></section><p class="back"><a href="./">${esc(T().back)}</a></p>`;
+  d.innerHTML=`<div class="detailtop"><div class="detailcover">${a.image?`<img src="${esc(a.image)}" alt="${esc(displayTitle)}" onerror="if(this.dataset.retry!=='1'&&this.dataset.alt){this.dataset.retry='1';this.src=this.dataset.alt}else{this.style.display='none';this.parentElement.classList.add('image-failed')}" data-alt="${esc(a.imageAlt||'')}">`:'ANIME DATA'}</div><div><span class="tag">${esc(seasonOf(a))}</span><h1>${esc(displayTitle)}</h1><p class="kana">${esc(LANG==='en'?(a.titleRomaji||a.titleNative||''):(a.titleRomaji||''))}</p><h3 class="section-label">${esc(LANG==='ja'?'あらすじ':'Synopsis')}</h3><p class="desc">${esc(synopsis)}</p><div class="facts"><div><b>${T().aired}</b>${esc(a.date||'Unknown')}</div><div><b>${T().next}</b>${esc(weekdayText(a))}</div><div><b>${T().genre}</b>${esc(genreText(a.genre).join(' / ')||T().noInfo)}</div><div><b>${T().studio}</b>${esc(a.studio||T().noInfo)}</div><div><b>${T().sourceLabel}</b>${esc(sourceText(a.source))}</div><div><b>${T().score}</b>${a.score?esc(Number(a.score).toFixed(1)):'-'}</div><div><b>${T().episodes}</b>${a.episodes??'Unknown'}</div><div><b>${LANG==='ja'?'形式':'Format'}</b>${esc(typeText(a.type))}</div></div>${a.official?`<a class="btn" href="${esc(a.official)}" target="_blank" rel="noopener">${esc(T().anilist)}</a>`:''}</div></div><div class="cols"><section><h2>${T().cast}</h2>${cast.length?cast.map(x=>`<p class="row"><b>${esc(x.character)}</b><span>${esc(x.person||'')}</span></p>`).join(''):`<p>${T().noInfo}</p>`}</section><section><h2>${T().staff}</h2>${staff.length?staff.map(x=>`<p class="row"><b>${esc(roleText(x.role))}</b><span>${esc(x.person||'')}</span></p>`).join(''):`<p>${T().noInfo}</p>`}</section></div><section><h2>${T().links}</h2><div class="chips">${links.length?links.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.site)}</a>`).join(''):`<span>${T().noInfo}</span>`}</div></section><section><h2>${T().streaming}</h2><div class="chips">${streaming.length?streaming.map(x=>`<a href="${esc(x.url||'#')}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(''):`<span>${T().noStreaming}</span>`}</div></section><p class="back"><a href="./">${esc(T().back)}</a></p>`;
 }
 
 async function loadJikanDetail(malId){
@@ -256,14 +259,21 @@ async function loadJikanDetail(malId){
 
 
 async function loadSeason(){
-  if(typeof FALLBACK_ANIME!=='undefined' && Array.isArray(FALLBACK_ANIME) && FALLBACK_ANIME.length>=5){
-    return FALLBACK_ANIME.map(normalizeStored);
-  }
   const y=currentYear(),s=currentSeason();
-  const data=await jikanGet(`/seasons/${y}/${String(s).toLowerCase()}`);
-  const rows=data||[];
-  if(!rows.length)throw new Error('Jikanの今クールデータが空です');
-  return rows.map(normalizeJikan);
+  try{
+    // まずJikanの最新データを取得する。data.jsの古い保存データを
+    // 先に使うと、画像のない旧データが優先されてしまうため。
+    const data=await jikanGet(`/seasons/${y}/${String(s).toLowerCase()}`);
+    const rows=data||[];
+    if(!rows.length)throw new Error('Jikanの今クールデータが空です');
+    return rows.map(normalizeJikan);
+  }catch(e){
+    // Jikanが一時的に利用できない場合だけ、保存済みデータへフォールバック。
+    if(typeof FALLBACK_ANIME!=='undefined' && Array.isArray(FALLBACK_ANIME) && FALLBACK_ANIME.length>=5){
+      return FALLBACK_ANIME.map(normalizeStored);
+    }
+    throw e;
+  }
 }
 
 async function loadEnglishDetail(id){
