@@ -57,11 +57,21 @@ async function gql(query,variables={}){
   return j.data;
 }
 
-async function jikanGet(path){
-  const r=await fetch(JIKAN+path,{headers:{'Accept':'application/json'}});
-  if(!r.ok) throw new Error(`Jikan API HTTP ${r.status}`);
-  const j=await r.json();
-  return j.data;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function jikanGet(path,retries=1){
+  let last;
+  for(let attempt=0;attempt<=retries;attempt++){
+    try{
+      const r=await fetch(JIKAN+path,{headers:{'Accept':'application/json'}});
+      if(!r.ok) throw new Error(`Jikan API HTTP ${r.status}`);
+      const j=await r.json();
+      return j.data;
+    }catch(e){
+      last=e;
+      if(attempt<retries) await sleep(650);
+    }
+  }
+  throw last||new Error('Jikan API error');
 }
 const GENRE_JP={Action:'アクション',Adventure:'冒険',Comedy:'コメディ',Drama:'ドラマ',Ecchi:'エッチ',Fantasy:'ファンタジー',Horror:'ホラー',Mystery:'ミステリー','Mahou Shoujo':'魔法少女',Mecha:'メカ',Music:'音楽',Psychological:'心理',Romance:'恋愛','Sci-Fi':'SF','Slice of Life':'日常',Sports:'スポーツ',Supernatural:'超自然',Thriller:'スリラー',Suspense:'サスペンス',Award:'受賞','Boys Love':'BL','Girls Love':'GL',Hentai:'成人向け'};
 const SOURCE_JP={Manga:'漫画','Light novel':'ライトノベル',Novel:'小説','Visual novel':'ビジュアルノベル','Video game':'ゲーム',Original:'オリジナル','Web manga':'Web漫画','Web novel':'Web小説','4-koma manga':'4コマ漫画',Music:'音楽',Book:'書籍','Card game':'カードゲーム','Picture book':'絵本',Other:'その他'};
@@ -245,30 +255,44 @@ function detail(a){
   const cast=(a.cast||[]).filter(x=>x.character).slice(0,30), staff=a.staff||[];
   const streaming=(a.streaming||[]).filter(x=>x.name), links=(a.externalLinks||[]).filter(x=>x.site&&x.url);
   const synopsis=a.description||T().info;
-  d.innerHTML=`<div class="detailtop"><div class="detailcover">${a.image?`<img src="${esc(a.image)}" alt="${esc(displayTitle)}" onerror="if(this.dataset.retry!=='1'&&this.dataset.alt){this.dataset.retry='1';this.src=this.dataset.alt}else{this.style.display='none';this.parentElement.classList.add('image-failed')}" data-alt="${esc(a.imageAlt||'')}">`:'ANIME DATA'}</div><div><span class="tag">${esc(seasonOf(a))}</span><h1>${esc(displayTitle)}</h1><p class="kana">${esc(LANG==='en'?(a.titleRomaji||a.titleNative||''):(a.titleRomaji||''))}</p><h3 class="section-label">${esc(LANG==='ja'?'あらすじ':'Synopsis')}</h3><p class="desc">${esc(synopsis)}</p><div class="facts"><div><b>${T().aired}</b>${esc(a.date||'Unknown')}</div><div><b>${T().next}</b>${esc(weekdayText(a))}</div><div><b>${T().genre}</b>${esc(genreText(a.genre).join(' / ')||T().noInfo)}</div><div><b>${T().studio}</b>${esc(a.studio||T().noInfo)}</div><div><b>${T().sourceLabel}</b>${esc(sourceText(a.source))}</div><div><b>${T().score}</b>${a.score?esc(Number(a.score).toFixed(1)):'-'}</div><div><b>${T().episodes}</b>${a.episodes??'Unknown'}</div><div><b>${LANG==='ja'?'形式':'Format'}</b>${esc(typeText(a.type))}</div></div>${a.official?`<a class="btn" href="${esc(a.official)}" target="_blank" rel="noopener">${esc(T().anilist)}</a>`:''}</div></div><div class="cols"><section><h2>${T().cast}</h2>${cast.length?cast.map(x=>`<p class="row"><b>${esc(x.character)}</b><span>${esc(x.person||'')}</span></p>`).join(''):`<p>${T().noInfo}</p>`}</section><section><h2>${T().staff}</h2>${staff.length?staff.map(x=>`<p class="row"><b>${esc(roleText(x.role))}</b><span>${esc(x.person||'')}</span></p>`).join(''):`<p>${T().noInfo}</p>`}</section></div><section><h2>${T().links}</h2><div class="chips">${links.length?links.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.site)}</a>`).join(''):`<span>${T().noInfo}</span>`}</div></section><section><h2>${T().streaming}</h2><div class="chips">${streaming.length?streaming.map(x=>`<a href="${esc(x.url||'#')}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(''):`<span>${T().noStreaming}</span>`}</div></section><p class="back"><a href="./">${esc(T().back)}</a></p>`;
+  const loading=LANG==='ja'?'読み込み中…':'Loading…';
+  const image=a.image||a.imageAlt;
+  d.innerHTML=`<div class="detailtop"><div class="detailcover">${image?`<img src="${esc(image)}" alt="${esc(displayTitle)}" onerror="if(this.dataset.retry!=='1'&&this.dataset.alt){this.dataset.retry='1';this.src=this.dataset.alt}else{this.style.display='none';this.parentElement.classList.add('image-failed')}" data-alt="${esc(a.imageAlt||'')}">`:'ANIME DATA'}</div><div><span class="tag">${esc(seasonOf(a))}</span><h1>${esc(displayTitle)}</h1><p class="kana">${esc(LANG==='en'?(a.titleRomaji||a.titleNative||''):(a.titleRomaji||''))}</p><h3 class="section-label">${esc(LANG==='ja'?'あらすじ':'Synopsis')}</h3><p class="desc">${esc(synopsis)}</p><div class="facts"><div><b>${T().aired}</b>${esc(a.date||'Unknown')}</div><div><b>${T().next}</b>${esc(weekdayText(a))}</div><div><b>${T().genre}</b>${esc(genreText(a.genre).join(' / ')||T().noInfo)}</div><div><b>${T().studio}</b>${esc(a.studio||T().noInfo)}</div><div><b>${T().sourceLabel}</b>${esc(sourceText(a.source))}</div><div><b>${T().score}</b>${a.score?esc(Number(a.score).toFixed(1)):'-'}</div><div><b>${T().episodes}</b>${a.episodes??'Unknown'}</div><div><b>${LANG==='ja'?'形式':'Format'}</b>${esc(typeText(a.type))}</div></div>${a.official?`<a class="btn" href="${esc(a.official)}" target="_blank" rel="noopener">${esc(T().anilist)}</a>`:''}</div></div><div class="cols"><section><h2>${T().cast}</h2><div id="detailCast">${cast.length?cast.map(x=>`<p class="row"><b>${esc(x.character)}</b><span>${esc(x.person||'')}</span></p>`).join(''):`<p>${a._loadingExtra?loading:T().noInfo}</p>`}</div></section><section><h2>${T().staff}</h2><div id="detailStaff">${staff.length?staff.map(x=>`<p class="row"><b>${esc(roleText(x.role))}</b><span>${esc(x.person||'')}</span></p>`).join(''):`<p>${a._loadingExtra?loading:T().noInfo}</p>`}</div></section></div><section><h2>${T().links}</h2><div class="chips">${links.length?links.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.site)}</a>`).join(''):`<span>${T().noInfo}</span>`}</div></section><section><h2>${T().streaming}</h2><div class="chips">${streaming.length?streaming.map(x=>`<a href="${esc(x.url||'#')}" target="_blank" rel="noopener">${esc(x.name)}</a>`).join(''):`<span>${T().noStreaming}</span>`}</div></section><p class="back"><a href="./">${esc(T().back)}</a></p>`;
+}
+
+async function loadJikanDetailBase(malId,fallback={}){
+  try{
+    const a=await jikanGet(`/anime/${malId}`);
+    const r=normalizeJikan(a);
+    if(!r.image && fallback?.image) r.image=fallback.image;
+    if(!r.description && fallback?.description) r.description=fallback.description;
+    if((!r.streaming||!r.streaming.length) && fallback?.streaming) r.streaming=fallback.streaming;
+    if((!r.externalLinks||!r.externalLinks.length) && fallback?.externalLinks) r.externalLinks=fallback.externalLinks;
+    return r;
+  }catch(e){
+    console.warn('Jikan作品情報取得失敗:',e);
+    return fallback&&fallback.title ? normalizeStored(fallback) : null;
+  }
+}
+
+async function loadJikanExtras(malId,base){
+  try{
+    const cs=await jikanGet(`/anime/${malId}/characters`);
+    base.cast=(cs?.characters||[]).slice(0,30).map(x=>({character:x.character?.name||'',person:(x.voice_actors||[]).find(v=>v.language==='Japanese')?.person?.name||(x.voice_actors||[])[0]?.person?.name||''}));
+    base.staff=(cs?.staff||[]).slice(0,25).flatMap(x=>(x.positions||[]).map(role=>({role,person:x.name||''})));
+  }catch(e){
+    console.warn('Jikanキャスト・スタッフ取得失敗:',e);
+  }
+  return base;
 }
 
 async function loadJikanDetail(malId,fallback={}){
-  let a;
-  try{
-    a=await jikanGet(`/anime/${malId}`);
-  }catch(e){
-    return fallback&&fallback.title ? normalizeStored(fallback) : null;
-  }
-  const r=normalizeJikan(a);
-  if(!r.image && fallback?.image) r.image=fallback.image;
-  try{
-    const cs=await jikanGet(`/anime/${malId}/characters`);
-    r.cast=(cs?.characters||[]).slice(0,30).map(x=>({character:x.character?.name||'',person:(x.voice_actors||[]).find(v=>v.language==='Japanese')?.person?.name||(x.voice_actors||[])[0]?.person?.name||''}));
-    r.staff=(cs?.staff||[]).slice(0,25).flatMap(x=>(x.positions||[]).map(role=>({role,person:x.name||''})));
-  }catch(e){
-    r.cast=fallback?.cast||[];
-    r.staff=fallback?.staff||[];
-  }
-  r.externalLinks=(a.external||[]).map(x=>({site:x.name,url:x.url}));
-  return r;
+  const base=await loadJikanDetailBase(malId,fallback);
+  if(!base)return null;
+  base._loadingExtra=true;
+  // 基本情報を先に返す。キャスト・スタッフは呼び出し側で後から更新する。
+  return base;
 }
-
 
 async function loadSeason(){
   const y=currentYear(),s=currentSeason();
@@ -325,11 +349,20 @@ async function start(){
       if(!rawId)throw new Error('作品IDがありません');
       if(LANG==='ja') {
         const stored=findStoredByAnyId(rawId);
-        // ホーム側のIDがAniList IDだった古い保存データにも対応し、
-        // その作品のMAL IDがあればJikanの正しい詳細APIへつなぐ。
+        const fallback=stored?normalizeStored(stored):null;
+        // 保存済みデータを最優先で即表示し、API待ちでページ全体を止めない。
+        if(fallback){ detail({...fallback,_loadingExtra:true}); }
         const malId=stored?.malId || stored?.idMal || rawId;
         const a=await loadJikanDetail(malId,stored||{});
-        detail(a || (stored ? normalizeStored(stored) : null));
+        if(!a){
+          if(!fallback) detail(null);
+          return;
+        }
+        detail(a);
+        // キャスト・スタッフは基本情報表示後に取得する。
+        const enriched=await loadJikanExtras(malId,a);
+        enriched._loadingExtra=false;
+        detail(enriched);
       } else {
         const a=await loadEnglishDetail(rawId);
         detail(a);
