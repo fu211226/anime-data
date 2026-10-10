@@ -14,20 +14,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Fetch current season from Jikan
         env:
           TZ: Asia/Tokyo
         run: |
           python - <<'PY'
-          import datetime, json, urllib.request, time
+          import datetime, json, urllib.request
           now=datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
           m=now.month
           season='winter' if m<=3 else 'spring' if m<=6 else 'summer' if m<=9 else 'fall'
           year=now.year
           url=f'https://api.jikan.moe/v4/seasons/{year}/{season}?page=1'
           print('Fetching', url)
-          req=urllib.request.Request(url, headers={'User-Agent':'anime-data-github-pages/2.0','Accept':'application/json'})
-          with urllib.request.urlopen(req, timeout=45) as r:
+          req=urllib.request.Request(url, headers={'User-Agent':'anime-data-github-pages/1.0','Accept':'application/json'})
+          with urllib.request.urlopen(req, timeout=30) as r:
               payload=json.load(r)
           rows=payload.get('data', [])
           def norm(a):
@@ -35,31 +36,35 @@ jobs:
               imgs=(a.get('images') or {}).get('jpg') or {}
               studios=' / '.join(x.get('name','') for x in a.get('studios',[]) if x.get('name'))
               return {
-                'id':str(a.get('mal_id','')), 'malId':str(a.get('mal_id','')),
+                'id':str(a.get('mal_id','')),
                 'title':a.get('title_japanese') or a.get('title') or a.get('title_english') or '名称不明',
-                'titleNative':a.get('title_japanese') or a.get('title') or '',
-                'titleEnglish':a.get('title_english') or a.get('title') or '',
-                'titleRomaji':a.get('title') or '', 'kana':a.get('title') or '',
-                'seasonKey':f'{year}-'+{'winter':'WINTER','spring':'SPRING','summer':'SUMMER','fall':'FALL'}[season],
-                'season':f'{year}年'+{'winter':'冬','spring':'春','summer':'夏','fall':'秋'}[season],
-                'date':aired[:10], 'weekday':(a.get('broadcast') or {}).get('day') or '', 'time':(a.get('broadcast') or {}).get('time') or '',
-                'genre':[x.get('name') for x in a.get('genres',[]) if x.get('name')], 'studio':studios or '未定',
-                'source':a.get('source') or '不明', 'description':' '.join((a.get('synopsis') or '').split()),
-                'image':imgs.get('large_image_url') or imgs.get('image_url') or '', 'official':a.get('url') or '',
-                'streaming':[], 'cast':[], 'staff':[], 'externalLinks':[], 'score':a.get('score') or 0,
-                'popularity':a.get('popularity') or 0, 'rank':a.get('rank') or 0, 'status':a.get('status') or '',
+                'kana':a.get('title') or a.get('title_english') or '',
+                'season':f'{year}{"年"}{"冬" if season=="winter" else "春" if season=="spring" else "夏" if season=="summer" else "秋"}',
+                'date':aired[:10],
+                'weekday':(a.get('broadcast') or {}).get('day') or '',
+                'time':(a.get('broadcast') or {}).get('time') or '',
+                'genre':[x.get('name') for x in a.get('genres',[]) if x.get('name')],
+                'studio':studios or '未定',
+                'source':a.get('source') or '不明',
+                'description':' '.join((a.get('synopsis') or '').split()),
+                'image':imgs.get('large_image_url') or imgs.get('image_url') or '',
+                'official':a.get('url') or '',
+                'streaming':[], 'cast':[], 'staff':[],
+                'score':a.get('score') or 0, 'popularity':a.get('popularity') or 0,
+                'rank':a.get('rank') or 0, 'status':a.get('status') or '',
                 'episodes':a.get('episodes'), 'type':a.get('type') or ''
               }
-          out='// Auto-updated by GitHub Actions from Jikan (Japanese-first base data).\nconst FALLBACK_ANIME='+json.dumps([norm(a) for a in rows], ensure_ascii=False, indent=2)+';\n'
+          out='// Auto-updated by GitHub Actions from Jikan.\nconst FALLBACK_ANIME='+json.dumps([norm(a) for a in rows], ensure_ascii=False, indent=2)+';\n'
           if len(rows) < 5:
               raise SystemExit('Too few records; keeping existing data.')
           open('data.js','w',encoding='utf-8').write(out)
           print('Wrote', len(rows), 'anime records')
           PY
+
       - name: Commit updated data
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data.js
-          git diff --cached --quiet || git commit -m "Update anime data (Japanese-first)"
+          git diff --cached --quiet || git commit -m "Update anime data"
           git push
